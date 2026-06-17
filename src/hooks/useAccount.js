@@ -33,15 +33,16 @@ export function useAccount() {
     if (!user) return
     setLoading(true)
 
-    // Try to fetch existing account
-    const { data: existing, error: fetchErr } = await supabase
+    // Try to fetch existing account — use limit(1) to avoid error when duplicates exist
+    const { data: existing } = await supabase
       .from('accounts')
       .select('*')
       .eq('user_id', user.id)
-      .single()
+      .order('created_at', { ascending: true })
+      .limit(1)
 
-    if (existing) {
-      setAccount(existing)
+    if (existing && existing.length > 0) {
+      setAccount(existing[0])
       setLoading(false)
       return
     }
