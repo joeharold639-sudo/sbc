@@ -1,6 +1,13 @@
 @import "tailwindcss";
 
 @theme {
+  --color-background:       #0b0d14;
+  --color-foreground:       #ffffff;
+  --color-card:             #161928;
+  --color-card-foreground:  #ffffff;
+  --color-muted:            #111422;
+  --color-muted-foreground: #8892b0;
+  --color-border:           #1e2338;
   --color-st-bg:       #0b0d14;
   --color-st-surface:  #111422;
   --color-st-card:     #161928;
@@ -12,6 +19,26 @@
   --color-st-muted:    #8892b0;
   --color-st-subtle:   #4a5568;
   --font-sans: 'Inter', system-ui, sans-serif;
+}
+
+:root {
+  --chart-background: transparent;
+  --chart-foreground: #ffffff;
+  --chart-foreground-muted: #8892b0;
+  --chart-label: #8892b0;
+  --chart-line-primary: #4f7fff;
+  --chart-line-secondary: #7c5cfc;
+  --chart-crosshair: rgba(255,255,255,0.25);
+  --chart-grid: rgba(255,255,255,0.04);
+  --chart-indicator-color: #4f7fff;
+  --chart-indicator-secondary-color: #7c5cfc;
+  --chart-marker-background: #161928;
+  --chart-marker-border: rgba(255,255,255,0.1);
+  --chart-marker-foreground: #ffffff;
+  --chart-marker-badge-background: rgba(79,127,255,0.2);
+  --chart-marker-badge-foreground: #4f7fff;
+  --chart-segment-background: rgba(79,127,255,0.08);
+  --chart-segment-line: #4f7fff;
 }
 
 html { scroll-behavior: smooth; }
