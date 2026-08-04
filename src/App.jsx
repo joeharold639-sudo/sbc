@@ -3,6 +3,7 @@ import { Routes, Route, Navigate } from 'react-router-dom'
 import { useAuth } from './context/AuthContext'
 import Header from './components/layout/Header'
 import Footer from './components/layout/Footer'
+import ErrorBoundary from './components/ErrorBoundary'
 
 const Landing   = lazy(() => import('./pages/Landing'))
 const Login     = lazy(() => import('./pages/auth/Login'))
@@ -54,12 +55,12 @@ export default function App() {
       <Route path="/kyc"    element={<PrivateRoute><KYC /></PrivateRoute>} />
 
       {/* Protected app pages */}
-      <Route path="/dashboard" element={<PrivateRoute><Dashboard /></PrivateRoute>} />
-      <Route path="/transfers" element={<PrivateRoute><Transfers /></PrivateRoute>} />
-      <Route path="/bitcoin"   element={<PrivateRoute><Bitcoin /></PrivateRoute>} />
-      <Route path="/cards"     element={<PrivateRoute><Cards /></PrivateRoute>} />
-      <Route path="/bills"     element={<PrivateRoute><Bills /></PrivateRoute>} />
-      <Route path="/admin"     element={<AdminRoute><Admin /></AdminRoute>} />
+      <Route path="/dashboard" element={<PrivateRoute><ErrorBoundary><Dashboard /></ErrorBoundary></PrivateRoute>} />
+      <Route path="/transfers" element={<PrivateRoute><ErrorBoundary><Transfers /></ErrorBoundary></PrivateRoute>} />
+      <Route path="/bitcoin"   element={<PrivateRoute><ErrorBoundary><Bitcoin /></ErrorBoundary></PrivateRoute>} />
+      <Route path="/cards"     element={<PrivateRoute><ErrorBoundary><Cards /></ErrorBoundary></PrivateRoute>} />
+      <Route path="/bills"     element={<PrivateRoute><ErrorBoundary><Bills /></ErrorBoundary></PrivateRoute>} />
+      <Route path="/admin"     element={<AdminRoute><ErrorBoundary><Admin /></ErrorBoundary></AdminRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

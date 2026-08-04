@@ -27,11 +27,11 @@ function KYCBadge({ status }) {
 
 function TxBadge({ type }) {
   const map = {
-    transfer:   { label: 'Transfer',   cls: 'text-[#4f7fff] bg-[#4f7fff]/10' },
-    deposit:    { label: 'Deposit',    cls: 'text-[#00c9b1] bg-[#00c9b1]/10' },
-    withdrawal: { label: 'Withdrawal', cls: 'text-red-400 bg-red-500/10' },
-    bill:       { label: 'Bill',       cls: 'text-[#f5c842] bg-[#f5c842]/10' },
-    bitcoin:    { label: 'Bitcoin',    cls: 'text-orange-400 bg-orange-500/10' },
+    credit:       { label: 'Credit',   cls: 'text-[#00c9b1] bg-[#00c9b1]/10' },
+    debit:        { label: 'Debit',    cls: 'text-red-400 bg-red-500/10' },
+    transfer:     { label: 'Transfer', cls: 'text-[#4f7fff] bg-[#4f7fff]/10' },
+    btc_buy:      { label: 'BTC Buy',  cls: 'text-orange-400 bg-orange-500/10' },
+    bill_payment: { label: 'Bill',     cls: 'text-[#f5c842] bg-[#f5c842]/10' },
   }
   const { label, cls } = map[type] ?? { label: type, cls: 'text-[#8892b0] bg-white/5' }
   return <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${cls}`}>{label}</span>
@@ -151,7 +151,9 @@ export default function Admin() {
                               <p className="text-sm font-medium truncate">{p?.full_name || 'Unknown'}</p>
                               <p className="text-xs text-[#4a5568] truncate">{tx.description}</p>
                             </div>
-                            <span className="text-sm font-semibold text-red-400 flex-shrink-0">-${fmt(tx.amount)}</span>
+                            <span className={`text-sm font-semibold flex-shrink-0 ${tx.type === 'credit' ? 'text-[#00c9b1]' : 'text-red-400'}`}>
+                              {tx.type === 'credit' ? '+' : '-'}${fmt(tx.amount)}
+                            </span>
                           </div>
                         )
                       })}
@@ -268,7 +270,9 @@ export default function Admin() {
                             </div>
                           </td>
                           <td className="px-5 py-3.5"><TxBadge type={tx.type} /></td>
-                          <td className="px-5 py-3.5 text-sm font-semibold text-red-400">-${fmt(tx.amount)}</td>
+                          <td className={`px-5 py-3.5 text-sm font-semibold ${tx.type === 'credit' ? 'text-[#00c9b1]' : 'text-red-400'}`}>
+                            {tx.type === 'credit' ? '+' : '-'}${fmt(tx.amount)}
+                          </td>
                           <td className="px-5 py-3.5">
                             <span className={`px-2 py-0.5 rounded-full text-xs font-medium ${tx.status === 'completed' ? 'text-[#00c9b1] bg-[#00c9b1]/10' : 'text-[#f5c842] bg-[#f5c842]/10'}`}>
                               {tx.status ?? 'completed'}
