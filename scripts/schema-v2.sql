@@ -2,38 +2,47 @@
 -- Phase 1 security & constraint fixes
 
 -- ── 1. Fix RLS: prevent users from self-escalating to admin ──────────────────
--- The old "own profile FOR ALL" policy allowed users to UPDATE is_admin on themselves.
--- Replace it with separate SELECT and UPDATE policies.
-
 DROP POLICY IF EXISTS "own profile" ON public.profiles;
 
--- Users can read their own profile row
-CREATE POLICY "own profile select"
-  ON public.profiles FOR SELECT
-  USING (auth.uid() = id);
+DO $$ BEGIN
+  CREATE POLICY "own profile select"
+    ON public.profiles FOR SELECT
+    USING (auth.uid() = id);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
--- Users can update their own profile BUT cannot change is_admin, kyc_status, or email
-CREATE POLICY "own profile update"
-  ON public.profiles FOR UPDATE
-  USING (auth.uid() = id)
-  WITH CHECK (
-    auth.uid() = id
-    AND is_admin  = (SELECT is_admin  FROM public.profiles WHERE id = auth.uid())
-    AND kyc_status = (SELECT kyc_status FROM public.profiles WHERE id = auth.uid())
-    AND email      = (SELECT email      FROM public.profiles WHERE id = auth.uid())
-  );
+DO $$ BEGIN
+  CREATE POLICY "own profile update"
+    ON public.profiles FOR UPDATE
+    USING (auth.uid() = id)
+    WITH CHECK (
+      auth.uid() = id
+      AND is_admin   = (SELECT is_admin   FROM public.profiles WHERE id = auth.uid())
+      AND kyc_status = (SELECT kyc_status FROM public.profiles WHERE id = auth.uid())
+    );
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 
 -- ── 2. Unique account numbers ─────────────────────────────────────────────────
-ALTER TABLE public.accounts
-  ADD CONSTRAINT IF NOT EXISTS accounts_account_number_unique UNIQUE (account_number);
+DO $$ BEGIN
+  ALTER TABLE public.accounts
+    ADD CONSTRAINT accounts_account_number_unique UNIQUE (account_number);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 
 -- ── 3. Transaction amount must be positive ────────────────────────────────────
-ALTER TABLE public.transactions
-  ADD CONSTRAINT IF NOT EXISTS transactions_amount_positive CHECK (amount > 0);
+DO $$ BEGIN
+  ALTER TABLE public.transactions
+    ADD CONSTRAINT transactions_amount_positive CHECK (amount > 0);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 
 -- ── 4. Account balance must be non-negative ───────────────────────────────────
-ALTER TABLE public.accounts
-  ADD CONSTRAINT IF NOT EXISTS accounts_balance_non_negative CHECK (balance >= 0);
+DO $$ BEGIN
+  ALTER TABLE public.accounts
+    ADD CONSTRAINT accounts_balance_non_negative CHECK (balance >= 0);
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;

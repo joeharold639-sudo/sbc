@@ -84,7 +84,7 @@ export default function Dashboard() {
         {/* Body */}
         <div className="flex-1 flex gap-0 overflow-hidden">
           {/* Center */}
-          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 space-y-6 min-w-0">
+          <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 pb-20 md:pb-6 space-y-6 min-w-0">
             <BalanceCard
               account={account}
               onSend={() => setModal('send')}

@@ -14,7 +14,7 @@ export default function DashboardLayout({ children, title, subtitle, right }) {
             {right && <div>{right}</div>}
           </div>
         )}
-        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6">
+        <div className="flex-1 overflow-y-auto px-6 sm:px-8 py-6 pb-20 md:pb-6">
           {children}
         </div>
       </div>

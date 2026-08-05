@@ -28,18 +28,24 @@ CREATE TABLE IF NOT EXISTS public.admin_audit_log (
 ALTER TABLE public.admin_audit_log ENABLE ROW LEVEL SECURITY;
 
 -- Admins can insert entries
-CREATE POLICY IF NOT EXISTS "admin insert audit"
-  ON public.admin_audit_log FOR INSERT
-  WITH CHECK (EXISTS (
-    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true
-  ));
+DO $$ BEGIN
+  CREATE POLICY "admin insert audit"
+    ON public.admin_audit_log FOR INSERT
+    WITH CHECK (EXISTS (
+      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- Admins can read all entries
-CREATE POLICY IF NOT EXISTS "admin read audit"
-  ON public.admin_audit_log FOR SELECT
-  USING (EXISTS (
-    SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true
-  ));
+DO $$ BEGIN
+  CREATE POLICY "admin read audit"
+    ON public.admin_audit_log FOR SELECT
+    USING (EXISTS (
+      SELECT 1 FROM public.profiles WHERE id = auth.uid() AND is_admin = true
+    ));
+EXCEPTION WHEN duplicate_object THEN NULL;
+END $$;
 
 -- No UPDATE or DELETE policies = audit log is append-only
 
