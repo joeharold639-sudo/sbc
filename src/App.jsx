@@ -15,6 +15,7 @@ const Bitcoin   = lazy(() => import('./pages/Bitcoin'))
 const Cards     = lazy(() => import('./pages/Cards'))
 const Bills     = lazy(() => import('./pages/Bills'))
 const Admin     = lazy(() => import('./pages/Admin'))
+const AdminMFA  = lazy(() => import('./pages/auth/AdminMFA'))
 
 const PageSpinner = () => (
   <div className="min-h-screen bg-[#0b0d14] flex items-center justify-center">
@@ -29,10 +30,11 @@ function PrivateRoute({ children }) {
 }
 
 function AdminRoute({ children }) {
-  const { user, profile, loading } = useAuth()
+  const { user, profile, loading, mfaRequired } = useAuth()
   if (loading) return <div className="min-h-screen bg-st-bg flex items-center justify-center"><div className="w-6 h-6 border-2 border-[#4f7fff] border-t-transparent rounded-full animate-spin"/></div>
   if (!user) return <Navigate to="/login" replace />
   if (!profile?.is_admin) return <Navigate to="/dashboard" replace />
+  if (mfaRequired) return <Navigate to="/admin-mfa" replace />
   return children
 }
 
@@ -61,6 +63,7 @@ export default function App() {
       <Route path="/cards"     element={<PrivateRoute><ErrorBoundary><Cards /></ErrorBoundary></PrivateRoute>} />
       <Route path="/bills"     element={<PrivateRoute><ErrorBoundary><Bills /></ErrorBoundary></PrivateRoute>} />
       <Route path="/admin"     element={<AdminRoute><ErrorBoundary><Admin /></ErrorBoundary></AdminRoute>} />
+      <Route path="/admin-mfa" element={<PrivateRoute><AdminMFA /></PrivateRoute>} />
 
       {/* Fallback */}
       <Route path="*" element={<Navigate to="/" replace />} />

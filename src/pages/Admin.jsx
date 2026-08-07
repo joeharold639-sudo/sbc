@@ -2,6 +2,7 @@ import { useState, useMemo } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAdmin } from '../hooks/useAdmin'
 import { useAdminActions } from '../hooks/useAdminActions'
+import { useAuth } from '../context/AuthContext'
 import BalanceModal from '../components/admin/BalanceModal'
 import AreaChart, { Area, XAxis, YAxis, ChartTooltip, Grid } from '../components/ui/area-chart'
 
@@ -99,6 +100,9 @@ const TX_TYPES = ['all', 'credit', 'debit', 'transfer', 'btc_buy', 'bill_payment
 
 // ── Main component ────────────────────────────────────────────────────────────
 export default function Admin() {
+  const { profile: myProfile } = useAuth()
+  const isSuperAdmin = myProfile?.admin_role === 'super_admin'
+
   const {
     profiles, accounts, transactions, auditLog,
     stats, accountByUserId, profileByAccountId, profileById,
@@ -176,8 +180,12 @@ export default function Admin() {
       title="Admin Panel"
       subtitle="User management · transaction monitoring · system overview"
       right={
-        <span className="px-3 py-1 rounded-full text-xs font-bold bg-[#4f7fff]/15 text-[#4f7fff] border border-[#4f7fff]/20 uppercase tracking-widest">
-          Admin
+        <span className={`px-3 py-1 rounded-full text-xs font-bold border uppercase tracking-widest ${
+          isSuperAdmin
+            ? 'bg-[#4f7fff]/15 text-[#4f7fff] border-[#4f7fff]/20'
+            : 'bg-[#f5c842]/10 text-[#f5c842] border-[#f5c842]/20'
+        }`}>
+          {isSuperAdmin ? 'Super Admin' : 'Support'}
         </span>
       }
     >
@@ -319,21 +327,26 @@ export default function Admin() {
                             <td className="px-4 py-3.5">
                               {acct ? (
                                 <div className="flex items-center gap-1.5">
-                                  <button
-                                    onClick={() => openBalanceModal(p, acct)}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#00c9b1]/10 text-[#00c9b1] hover:bg-[#00c9b1]/20 transition-colors"
-                                  >
-                                    Credit
-                                  </button>
-                                  <button
-                                    onClick={() => openBalanceModal(p, acct)}
-                                    className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
-                                  >
-                                    Debit
-                                  </button>
+                                  {isSuperAdmin && (
+                                    <>
+                                      <button
+                                        onClick={() => openBalanceModal(p, acct)}
+                                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-[#00c9b1]/10 text-[#00c9b1] hover:bg-[#00c9b1]/20 transition-colors"
+                                      >
+                                        Credit
+                                      </button>
+                                      <button
+                                        onClick={() => openBalanceModal(p, acct)}
+                                        className="px-2.5 py-1 rounded-lg text-xs font-semibold bg-red-500/10 text-red-400 hover:bg-red-500/20 transition-colors"
+                                      >
+                                        Debit
+                                      </button>
+                                    </>
+                                  )}
                                   <button
                                     onClick={() => handleFreeze(acct)}
-                                    disabled={isProcessing || actionLoading}
+                                    disabled={isProcessing || actionLoading || (isFrozen && !isSuperAdmin)}
+                                    title={isFrozen && !isSuperAdmin ? 'Only super_admin can unfreeze' : undefined}
                                     className={`px-2.5 py-1 rounded-lg text-xs font-semibold transition-colors disabled:opacity-40 ${
                                       isFrozen
                                         ? 'bg-[#4f7fff]/10 text-[#4f7fff] hover:bg-[#4f7fff]/20'

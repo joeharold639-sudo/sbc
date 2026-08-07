@@ -4,10 +4,11 @@ import { supabase } from '../lib/supabase'
 const AuthContext = createContext({})
 
 export function AuthProvider({ children }) {
-  const [user, setUser]             = useState(null)
-  const [profile, setProfile]       = useState(null)
-  const [loading, setLoading]       = useState(true)
+  const [user, setUser]                 = useState(null)
+  const [profile, setProfile]           = useState(null)
+  const [loading, setLoading]           = useState(true)
   const [profileError, setProfileError] = useState(null)
+  const [mfaLevel, setMfaLevel]         = useState(null) // 'aal1' | 'aal2'
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data: { session } }) => {
@@ -19,7 +20,7 @@ export function AuthProvider({ children }) {
     const { data: { subscription } } = supabase.auth.onAuthStateChange((_event, session) => {
       setUser(session?.user ?? null)
       if (session?.user) fetchProfile(session.user.id)
-      else { setProfile(null); setLoading(false) }
+      else { setProfile(null); setMfaLevel(null); setLoading(false) }
     })
 
     return () => subscription.unsubscribe()
@@ -33,6 +34,13 @@ export function AuthProvider({ children }) {
       .single()
     if (error) setProfileError(error.message)
     setProfile(data ?? null)
+
+    // Check MFA level for admin users
+    if (data?.is_admin) {
+      const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+      setMfaLevel(aal?.currentLevel ?? 'aal1')
+    }
+
     setLoading(false)
   }
 
@@ -66,8 +74,11 @@ export function AuthProvider({ children }) {
     return { data, error }
   }
 
+  // True when admin hasn't completed MFA for this session
+  const mfaRequired = profile?.is_admin && mfaLevel === 'aal1'
+
   return (
-    <AuthContext.Provider value={{ user, profile, loading, profileError, signUp, signIn, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, profileError, mfaLevel, mfaRequired, signUp, signIn, signOut, updateProfile }}>
       {children}
     </AuthContext.Provider>
   )

@@ -181,7 +181,22 @@ async function cmdTxns(chatId: number, args: string[], adminTgId: string) {
   await logAudit('txns_lookup', adminTgId, { target_email: email, limit })
 }
 
+async function checkSuperAdmin(chatId: number, adminTgId: string): Promise<boolean> {
+  const { data } = await supabase
+    .from('profiles')
+    .select('admin_role')
+    .eq('id', Deno.env.get('BOT_ADMIN_UUID') ?? '')
+    .single()
+  if (data?.admin_role !== 'super_admin') {
+    await reply(chatId, '⛔ This action requires <b>super_admin</b> role. Your account is read-only support access.')
+    return false
+  }
+  return true
+}
+
 async function cmdCredit(chatId: number, args: string[], adminTgId: string) {
+  if (!await checkSuperAdmin(chatId, adminTgId)) return
+
   const [email, amountStr, ...reasonParts] = args
   const reason = reasonParts.join(' ')
   const amount = parseFloat(amountStr)
@@ -190,6 +205,7 @@ async function cmdCredit(chatId: number, args: string[], adminTgId: string) {
     return reply(chatId, '❌ Usage: /credit &lt;email&gt; &lt;amount&gt; &lt;reason&gt;\n\nExample:\n<code>/credit user@email.com 500 Salary payment</code>')
   }
   if (isNaN(amount) || amount <= 0) return reply(chatId, '❌ Amount must be a positive number.')
+  if (amount > 50000) return reply(chatId, '❌ Single credit cannot exceed $50,000.')
 
   const authUser = await getUserByEmail(email)
   if (!authUser) return reply(chatId, `❌ No user found: <code>${esc(email)}</code>`)
@@ -203,7 +219,10 @@ async function cmdCredit(chatId: number, args: string[], adminTgId: string) {
     p_reason:     reason,
   })
 
-  if (error) return reply(chatId, `❌ Failed: ${esc(error.message)}`)
+  if (error) {
+    const msg = error.message.includes('Rate limit') ? '⏱ Rate limit exceeded. Max 20 credits per hour.' : `❌ Failed: ${esc(error.message)}`
+    return reply(chatId, msg)
+  }
 
   const newBalance = Number((data as { new_balance: number })?.new_balance ?? 0)
   await reply(chatId, `✅ <b>Credit successful</b>
@@ -217,6 +236,8 @@ Logged in audit trail.`)
 }
 
 async function cmdDebit(chatId: number, args: string[], adminTgId: string) {
+  if (!await checkSuperAdmin(chatId, adminTgId)) return
+
   const [email, amountStr, ...reasonParts] = args
   const reason = reasonParts.join(' ')
   const amount = parseFloat(amountStr)
@@ -225,6 +246,7 @@ async function cmdDebit(chatId: number, args: string[], adminTgId: string) {
     return reply(chatId, '❌ Usage: /debit &lt;email&gt; &lt;amount&gt; &lt;reason&gt;\n\nExample:\n<code>/debit user@email.com 100 Fee reversal</code>')
   }
   if (isNaN(amount) || amount <= 0) return reply(chatId, '❌ Amount must be a positive number.')
+  if (amount > 50000) return reply(chatId, '❌ Single debit cannot exceed $50,000.')
 
   const authUser = await getUserByEmail(email)
   if (!authUser) return reply(chatId, `❌ No user found: <code>${esc(email)}</code>`)
@@ -242,7 +264,10 @@ async function cmdDebit(chatId: number, args: string[], adminTgId: string) {
     p_reason:     reason,
   })
 
-  if (error) return reply(chatId, `❌ Failed: ${esc(error.message)}`)
+  if (error) {
+    const msg = error.message.includes('Rate limit') ? '⏱ Rate limit exceeded. Max 20 debits per hour.' : `❌ Failed: ${esc(error.message)}`
+    return reply(chatId, msg)
+  }
 
   const newBalance = Number((data as { new_balance: number })?.new_balance ?? 0)
   await reply(chatId, `✅ <b>Debit successful</b>
