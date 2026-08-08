@@ -16,6 +16,7 @@ const Cards     = lazy(() => import('./pages/Cards'))
 const Bills     = lazy(() => import('./pages/Bills'))
 const Admin     = lazy(() => import('./pages/Admin'))
 const AdminMFA  = lazy(() => import('./pages/auth/AdminMFA'))
+const Apply     = lazy(() => import('./pages/Apply'))
 
 const PageSpinner = () => (
   <div className="min-h-screen bg-[#0b0d14] flex items-center justify-center">
@@ -62,6 +63,7 @@ export default function App() {
       <Route path="/bitcoin"   element={<PrivateRoute><ErrorBoundary><Bitcoin /></ErrorBoundary></PrivateRoute>} />
       <Route path="/cards"     element={<PrivateRoute><ErrorBoundary><Cards /></ErrorBoundary></PrivateRoute>} />
       <Route path="/bills"     element={<PrivateRoute><ErrorBoundary><Bills /></ErrorBoundary></PrivateRoute>} />
+      <Route path="/apply"      element={<PrivateRoute><ErrorBoundary><Apply /></ErrorBoundary></PrivateRoute>} />
       <Route path="/admin"     element={<AdminRoute><ErrorBoundary><Admin /></ErrorBoundary></AdminRoute>} />
       <Route path="/admin-mfa" element={<PrivateRoute><AdminMFA /></PrivateRoute>} />
 

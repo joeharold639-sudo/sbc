@@ -1,9 +1,10 @@
-import { useState, useMemo } from 'react'
+import { useState, useMemo, useEffect, useCallback } from 'react'
 import DashboardLayout from '../components/layout/DashboardLayout'
 import { useAdmin } from '../hooks/useAdmin'
 import { useAdminActions } from '../hooks/useAdminActions'
 import { useAuth } from '../context/AuthContext'
 import BalanceModal from '../components/admin/BalanceModal'
+import { supabase } from '../lib/supabase'
 import AreaChart, { Area, XAxis, YAxis, ChartTooltip, Grid } from '../components/ui/area-chart'
 
 // ── Helpers ───────────────────────────────────────────────────────────────────
@@ -89,11 +90,12 @@ const TAB_CLS = active =>
 const inputCls = "bg-[#111422] border border-white/10 rounded-xl px-4 py-2.5 text-sm text-white placeholder-[#4a5568] focus:outline-none focus:border-[#4f7fff] transition-colors"
 
 const TABS = [
-  ['overview',     'Overview'],
-  ['users',        'Users'],
-  ['transactions', 'Transactions'],
-  ['analytics',    'Analytics'],
-  ['audit',        'Audit Log'],
+  ['overview',      'Overview'],
+  ['users',         'Users'],
+  ['transactions',  'Transactions'],
+  ['applications',  'Applications'],
+  ['analytics',     'Analytics'],
+  ['audit',         'Audit Log'],
 ]
 
 const TX_TYPES = ['all', 'credit', 'debit', 'transfer', 'btc_buy', 'bill_payment']
@@ -117,6 +119,50 @@ export default function Admin() {
   const [txSearch,   setTxSearch]   = useState('')
   const [freezingId, setFreezingId] = useState(null)
   const [balanceModal, setBalanceModal] = useState(null) // { user, account }
+
+  // ── Applications ───────────────────────────────────────────────────────────
+  const [applications,   setApplications]   = useState([])
+  const [appsLoading,    setAppsLoading]    = useState(false)
+  const [appActionId,    setAppActionId]    = useState(null)
+  const [reviewNote,     setReviewNote]     = useState('')
+
+  const fetchApplications = useCallback(async () => {
+    setAppsLoading(true)
+    const { data } = await supabase
+      .from('applications')
+      .select('*, profiles:user_id(full_name, email)')
+      .order('created_at', { ascending: false })
+    setApplications(data ?? [])
+    setAppsLoading(false)
+  }, [])
+
+  useEffect(() => { if (tab === 'applications') fetchApplications() }, [tab, fetchApplications])
+
+  async function handleApprove(appId) {
+    setAppActionId(appId)
+    const { error } = await supabase.rpc('approve_application', {
+      p_application_id: appId,
+      p_review_note:    reviewNote || null,
+    })
+    setAppActionId(null)
+    setReviewNote('')
+    if (error) { alert(error.message); return }
+    fetchApplications()
+    refresh()
+  }
+
+  async function handleReject(appId) {
+    if (!window.confirm('Reject this application?')) return
+    setAppActionId(appId)
+    const { error } = await supabase.rpc('reject_application', {
+      p_application_id: appId,
+      p_review_note:    reviewNote || null,
+    })
+    setAppActionId(null)
+    setReviewNote('')
+    if (error) { alert(error.message); return }
+    fetchApplications()
+  }
 
   // ── Filtered data ──────────────────────────────────────────────────────────
   const filteredUsers = useMemo(() =>
@@ -583,6 +629,91 @@ export default function Admin() {
                   <div className="px-5 py-3 border-t border-white/5">
                     <p className="text-xs text-[#4a5568]">{auditLog.length} entries (last 200)</p>
                   </div>
+                </div>
+              )}
+            </div>
+          )}
+
+          {/* ── APPLICATIONS ── */}
+          {tab === 'applications' && (
+            <div className="space-y-4">
+              {appsLoading ? (
+                <div className="flex justify-center py-16">
+                  <div className="w-6 h-6 border-2 border-[#4f7fff] border-t-transparent rounded-full animate-spin"/>
+                </div>
+              ) : applications.length === 0 ? (
+                <div className="rounded-2xl border border-white/5 p-10 text-center" style={{ background: 'rgba(17,20,34,0.8)' }}>
+                  <p className="text-[#4a5568] text-sm">No applications yet</p>
+                </div>
+              ) : (
+                <div className="space-y-3">
+                  {applications.map(app => {
+                    const isPending = app.status === 'pending'
+                    return (
+                      <div key={app.id} className="rounded-2xl border border-white/5 p-5" style={{ background: 'rgba(17,20,34,0.8)' }}>
+                        <div className="flex flex-wrap items-start justify-between gap-3 mb-3">
+                          <div>
+                            <div className="flex items-center gap-2 mb-1">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-bold uppercase tracking-wider ${
+                                app.type === 'loan'
+                                  ? 'bg-[#4f7fff]/15 text-[#4f7fff]'
+                                  : 'bg-[#7c5cfc]/15 text-[#7c5cfc]'
+                              }`}>{app.type}</span>
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-semibold ${
+                                app.status === 'pending'  ? 'bg-[#f5c842]/10 text-[#f5c842]' :
+                                app.status === 'approved' ? 'bg-[#00c9b1]/10 text-[#00c9b1]' :
+                                'bg-red-500/10 text-red-400'
+                              }`}>{app.status}</span>
+                            </div>
+                            <p className="text-xl font-black text-white">${fmt(app.amount)}</p>
+                            <p className="text-sm text-[#8892b0] mt-0.5">{app.purpose}</p>
+                          </div>
+                          <div className="text-right text-xs text-[#4a5568]">
+                            <p className="font-medium text-white text-sm">{app.profiles?.full_name || '—'}</p>
+                            <p>{app.profiles?.email}</p>
+                            <p className="mt-1">{new Date(app.created_at).toLocaleDateString()}</p>
+                          </div>
+                        </div>
+
+                        {app.details && (
+                          <p className="text-sm text-[#8892b0] bg-white/3 rounded-xl px-4 py-3 mb-3 border border-white/5">
+                            {app.details}
+                          </p>
+                        )}
+
+                        {app.review_note && (
+                          <p className="text-xs text-[#4a5568] italic mb-3">Review note: "{app.review_note}"</p>
+                        )}
+
+                        {isPending && isSuperAdmin && (
+                          <div className="flex flex-wrap gap-2 items-center pt-3 border-t border-white/5">
+                            <input
+                              type="text"
+                              placeholder="Review note (optional)"
+                              className="flex-1 min-w-40 bg-white/5 border border-white/10 rounded-lg px-3 py-2 text-xs text-white placeholder-[#4a5568] focus:outline-none focus:border-[#4f7fff]"
+                              onChange={e => setReviewNote(e.target.value)}
+                            />
+                            <button
+                              onClick={() => handleApprove(app.id)}
+                              disabled={appActionId === app.id}
+                              className="px-4 py-2 bg-[#00c9b1]/15 hover:bg-[#00c9b1]/25 text-[#00c9b1] border border-[#00c9b1]/20 rounded-lg text-xs font-semibold disabled:opacity-40 transition-all">
+                              {appActionId === app.id ? '…' : '✓ Approve'}
+                            </button>
+                            <button
+                              onClick={() => handleReject(app.id)}
+                              disabled={appActionId === app.id}
+                              className="px-4 py-2 bg-red-500/10 hover:bg-red-500/20 text-red-400 border border-red-500/20 rounded-lg text-xs font-semibold disabled:opacity-40 transition-all">
+                              {appActionId === app.id ? '…' : '✕ Reject'}
+                            </button>
+                          </div>
+                        )}
+
+                        {isPending && !isSuperAdmin && (
+                          <p className="text-xs text-[#4a5568] pt-3 border-t border-white/5">Only super_admin can approve or reject applications.</p>
+                        )}
+                      </div>
+                    )
+                  })}
                 </div>
               )}
             </div>
