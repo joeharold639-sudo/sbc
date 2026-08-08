@@ -1,6 +1,7 @@
 import { useState, useEffect } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { supabase } from '../../lib/supabase'
+import { useAuth } from '../../context/AuthContext'
 
 function Spinner() {
   return <div className="w-5 h-5 border-2 border-[#4f7fff] border-t-transparent rounded-full animate-spin mx-auto" />
@@ -8,6 +9,7 @@ function Spinner() {
 
 export default function AdminMFA() {
   const navigate = useNavigate()
+  const { refreshMfaLevel } = useAuth()
   const [mode, setMode]           = useState(null) // 'setup' | 'verify'
   const [qr, setQr]               = useState(null)
   const [secret, setSecret]       = useState(null)
@@ -48,8 +50,10 @@ export default function AdminMFA() {
     setError(null)
     setLoading(true)
     const { error } = await supabase.auth.mfa.verify({ factorId, challengeId, code: code.replace(/\s/g, '') })
+    if (error) { setLoading(false); setError(error.message); return }
+    // Wait for the AAL2 session to be reflected before navigating
+    await refreshMfaLevel()
     setLoading(false)
-    if (error) { setError(error.message); return }
     navigate('/admin', { replace: true })
   }
 

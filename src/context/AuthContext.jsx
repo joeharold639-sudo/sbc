@@ -63,6 +63,12 @@ export function AuthProvider({ children }) {
     return supabase.auth.signOut()
   }
 
+  async function refreshMfaLevel() {
+    const { data: aal } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel()
+    setMfaLevel(aal?.currentLevel ?? 'aal1')
+    return aal?.currentLevel ?? 'aal1'
+  }
+
   async function updateProfile(updates) {
     const { data, error } = await supabase
       .from('profiles')
@@ -78,7 +84,7 @@ export function AuthProvider({ children }) {
   const mfaRequired = profile?.is_admin && mfaLevel === 'aal1'
 
   return (
-    <AuthContext.Provider value={{ user, profile, loading, profileError, mfaLevel, mfaRequired, signUp, signIn, signOut, updateProfile }}>
+    <AuthContext.Provider value={{ user, profile, loading, profileError, mfaLevel, mfaRequired, signUp, signIn, signOut, updateProfile, refreshMfaLevel }}>
       {children}
     </AuthContext.Provider>
   )

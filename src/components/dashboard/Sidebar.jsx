@@ -61,6 +61,13 @@ export default function Sidebar() {
   const { profile, signOut } = useAuth()
   const navigate = useNavigate()
   const [collapsed, setCollapsed] = useState(false)
+  const [confirmLogout, setConfirmLogout] = useState(false)
+
+  async function handleLogout() {
+    if (!confirmLogout) { setConfirmLogout(true); return }
+    await signOut()
+    navigate('/')
+  }
 
   const linkCls = ({ isActive }) =>
     `flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all ${
@@ -156,17 +163,26 @@ export default function Sidebar() {
 
           {/* User / logout */}
           <button
-            onClick={() => { signOut(); navigate('/') }}
-            title={collapsed ? 'Log out' : undefined}
-            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm text-[#8892b0] hover:text-white hover:bg-white/5 transition-all mt-2 ${collapsed ? 'justify-center' : ''}`}
+            onClick={handleLogout}
+            onBlur={() => setConfirmLogout(false)}
+            title={collapsed ? (confirmLogout ? 'Confirm logout?' : 'Log out') : undefined}
+            className={`w-full flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm transition-all mt-2 ${
+              confirmLogout
+                ? 'text-red-400 bg-red-500/10 hover:bg-red-500/15'
+                : 'text-[#8892b0] hover:text-white hover:bg-white/5'
+            } ${collapsed ? 'justify-center' : ''}`}
           >
-            <div className="w-7 h-7 rounded-full bg-[#4f7fff]/30 flex items-center justify-center text-xs font-bold text-[#4f7fff] flex-shrink-0">
-              {profile?.full_name?.[0]?.toUpperCase() ?? '?'}
+            <div className={`w-7 h-7 rounded-full flex items-center justify-center text-xs font-bold flex-shrink-0 ${
+              confirmLogout ? 'bg-red-500/20 text-red-400' : 'bg-[#4f7fff]/30 text-[#4f7fff]'
+            }`}>
+              {confirmLogout ? '!' : (profile?.full_name?.[0]?.toUpperCase() ?? '?')}
             </div>
             {!collapsed && (
               <div className="flex-1 text-left min-w-0">
-                <p className="text-xs font-medium text-white truncate">{profile?.full_name ?? 'My Account'}</p>
-                <p className="text-[10px] text-[#4a5568] truncate">Log out</p>
+                <p className={`text-xs font-medium truncate ${confirmLogout ? 'text-red-400' : 'text-white'}`}>
+                  {confirmLogout ? 'Tap again to confirm' : (profile?.full_name ?? 'My Account')}
+                </p>
+                <p className="text-[10px] text-[#4a5568] truncate">{confirmLogout ? 'Click again to log out' : 'Log out'}</p>
               </div>
             )}
           </button>
